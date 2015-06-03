@@ -1,0 +1,42 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Chatting</title>
+<script type="text/javascript" src="js/jquery-1.9.2.min.js"></script>
+<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+<link rel="stylesheet" href="/stylesheets/style.css">
+<script>
+
+var serverUrl = 'http://localhost:3000';
+var socket = io.connect(serverUrl);
+
+$(document).ready(function(){
+	$("#making").click(function(){
+		var data = {"newid":$("#newid").val(),"newpw":$("#newpw").val()};
+		socket.emit('making', data);
+		$("#newid").val("");
+		$("#newpw").val("");
+	});
+	
+	//방만들기 
+	$("#room_make").click(function(){
+
+		var data = {"roomname":$("#roomname").val(),"nickname":$("#nickname").val(),"pw":$("#pw").val()};
+		socket.emit('roommake', data);
+		$("#roomname").val("");
+		$("#nickname").val("");
+		$("#pw").val("");
+	});
+	
+	// 아이디 생성 성공시 호출
+	socket.on('R_making_yes',function(data){
+			$("#success").show();
+			$("#warn").hide();
+		}
+	});
+	// 아이디 생성 실패시 호출
+	socket.on('R_making_no',function(data){		
+			$("#warn").show();
+			$("#success").hide();
+		}
+});
