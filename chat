@@ -7,36 +7,133 @@
 <link rel="stylesheet" href="/stylesheets/style.css">
 <script>
 
+var roomlist = [];
 var serverUrl = 'http://localhost:3000';
 var socket = io.connect(serverUrl);
+var clientid;
+var nickname;
 
 $(document).ready(function(){
+	
 	$("#making").click(function(){
 		var data = {"newid":$("#newid").val(),"newpw":$("#newpw").val()};
 		socket.emit('making', data);
-		$("#newid").val("");
-		$("#newpw").val("");
+		isinit = false;
 	});
 	
 	//방만들기 
 	$("#room_make").click(function(){
-
 		var data = {"roomname":$("#roomname").val(),"nickname":$("#nickname").val(),"pw":$("#pw").val()};
 		socket.emit('roommake', data);
-		$("#roomname").val("");
-		$("#nickname").val("");
-		$("#pw").val("");
+		nickname = $("#nickname").val();
 	});
 	
-	// 아이디 생성 성공시 호출
+	//로딩시에 방목록 얻어오기 요청
+	getRoomList();
+	
+	//방목록 얻어오기 요청
+	socket.on('roomlist',function(data){
+		
+		//개설된 방목록 
+		roomlist = [];
+		
+		clientid = data.clientid;
+		data = data.roomdata;
+		
+		for(var key in data){
+			if(key.indexOf("/") > -1){
+				
+				var myroom = false;
+				
+				for(var i = 0 ; i < data[key].length ; i++){
+					if(data[key][i] == io.sockets[serverUrl].sessionid)
+						myroom = true;
+				}
+				
+				roomlist.push({"name":key.split("/").join(""),count:data[key].length,myroom:myroom});
+			}
+		}
+
+		viewRoomlist(roomlist);
+	});
+	
 	socket.on('R_making_yes',function(data){
-			$("#success").show();
-			$("#warn").hide();
+		$("#success").show();
+		$("#warn").hide();
+		
+	});
+	socket.on('R_making_no',function(data){		
+		$("#warn").show();
+		$("#success").hide();
+	});
+	socket.on('error',function(data){
+		$("#no_id").show();
+		$("#newclient").show();
+	});
+	//Room 변경 
+	socket.on('room_research',function(data){
+		getRoomList();
+	});
+	
+	//입장시 화면 처리
+	socket.on('intro',function(data){
+		isinit = true;
+		$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data + ') 님이 입장하셧습니다.\n');
+		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+	});
+
+	//msg 처리
+	socket.on('message_send',function(data){
+		$("#chatroom textarea").val($("#chatroom textarea").val() + '[' + data.from + '] : ' + data.msg + '\n');
+		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+		console.log(data);
+		
+	});
+	
+	//퇴장 화면 처리
+	socket.on('message_send_disconnect',function(data){
+		
+		console.log("DICONNECT")
+		$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data.from + ') 님이 퇴장 하셧습니다.\n');
+		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+	});
+
+	});
+	
+});
+
+//REST 요청으로 방목록 받아오기 
+function getRoomList(){
+	$.ajax({
+		type: "get",
+		dataType: "json",
+		url: "/roomlist",
+		success: function(data){
+			console.log(data);
+			roomlist = [];
+			
+			for(var key in data){
+				if(key.indexOf("/") > -1){
+					var myroom = false;
+					for(var i = 0 ; i < data[key].length ; i++){
+						if(data[key][i] == io.sockets[serverUrl].sessionid)
+							myroom = true;
+					}
+					
+					roomlist.push({"name":key.split("/").join(""),count:data[key].length,myroom:myroom});
+				}
+			}
+			
+			viewRoomlist(roomlist);
+		},
+		error: function(res){
+			
 		}
 	});
-	// 아이디 생성 실패시 호출
-	socket.on('R_making_no',function(data){		
-			$("#warn").show();
-			$("#success").hide();
-		}
-});
+	
+}
+
+
+function viewRoomlist(data){
+
+}
