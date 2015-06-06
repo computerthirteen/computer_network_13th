@@ -12,12 +12,21 @@ var serverUrl = 'http://localhost:3000';
 var socket = io.connect(serverUrl);
 var clientid;
 var nickname;
+var isinit;
 
 $(document).ready(function(){
+	isinit = true;	
+	$("#no_id").hide();
+	$("#chatroom").hide();
+	$("#room").hide();	
+	$("#warn").hide();	
+	$("#success").hide();	
 	
 	$("#making").click(function(){
 		var data = {"newid":$("#newid").val(),"newpw":$("#newpw").val()};
 		socket.emit('making', data);
+		$("#newid").val("");
+		$("#newpw").val("");
 		isinit = false;
 	});
 	
@@ -25,7 +34,15 @@ $(document).ready(function(){
 	$("#room_make").click(function(){
 		var data = {"roomname":$("#roomname").val(),"nickname":$("#nickname").val(),"pw":$("#pw").val()};
 		socket.emit('roommake', data);
+		$("#roomname").val("");
+		$("#nickname").val("");
+		$("#pw").val("");
 		nickname = $("#nickname").val();
+		$("#success").hide();
+		$("#newclient").hide();
+		$("#warn").hide();
+		$("#no_id").hide();
+		isinit = false;
 	});
 	
 	//로딩시에 방목록 얻어오기 요청
@@ -41,47 +58,46 @@ $(document).ready(function(){
 		data = data.roomdata;
 		
 		for(var key in data){
-			if(key.indexOf("/") > -1){
-				
+			if(key.indexOf("/") > -1){			
 				var myroom = false;
-				
 				for(var i = 0 ; i < data[key].length ; i++){
 					if(data[key][i] == io.sockets[serverUrl].sessionid)
 						myroom = true;
 				}
-				
 				roomlist.push({"name":key.split("/").join(""),count:data[key].length,myroom:myroom});
 			}
 		}
-
 		viewRoomlist(roomlist);
 	});
 	
 	socket.on('R_making_yes',function(data){
-		$("#success").show();
-		$("#warn").hide();
-		
+		if(isinit == false){
+			$("#success").show();
+			$("#warn").hide();
+		}
 	});
 	socket.on('R_making_no',function(data){		
-		$("#warn").show();
-		$("#success").hide();
+		if(isinit == false){
+			$("#warn").show();
+			$("#success").hide();
+		}
 	});
 	socket.on('error',function(data){
-		$("#no_id").show();
-		$("#newclient").show();
+		if(isinit == false){
+			$("#no_id").show();
+			$("#newclient").show();
+		}
 	});
 	//Room 변경 
 	socket.on('room_research',function(data){
 		getRoomList();
 	});
-	
 	//입장시 화면 처리
 	socket.on('intro',function(data){
 		isinit = true;
 		$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data + ') 님이 입장하셧습니다.\n');
 		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
 	});
-
 	//msg 처리
 	socket.on('message_send',function(data){
 		$("#chatroom textarea").val($("#chatroom textarea").val() + '[' + data.from + '] : ' + data.msg + '\n');
@@ -89,21 +105,24 @@ $(document).ready(function(){
 		console.log(data);
 		
 	});
-	
 	//퇴장 화면 처리
 	socket.on('message_send_disconnect',function(data){
-		
-		console.log("DICONNECT")
+		console.log("DICONNECT");
 		$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data.from + ') 님이 퇴장 하셧습니다.\n');
 		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
 	});
-
+	//입력창에서 엔터시에 데이터 전송 
+	$("#chatroom div input").keypress(function(e){
+		if(e.keyCode == 13){
+			socket.emit('message', {"msg":$("#chatroom div input").val()});
+			$("#chatroom div input").val("");
+		}
 	});
-	
 });
-
 //REST 요청으로 방목록 받아오기 
 function getRoomList(){
+	$("#warn").hide();	
+	$("#success").hide();	
 	$.ajax({
 		type: "get",
 		dataType: "json",
@@ -111,7 +130,6 @@ function getRoomList(){
 		success: function(data){
 			console.log(data);
 			roomlist = [];
-			
 			for(var key in data){
 				if(key.indexOf("/") > -1){
 					var myroom = false;
@@ -119,21 +137,45 @@ function getRoomList(){
 						if(data[key][i] == io.sockets[serverUrl].sessionid)
 							myroom = true;
 					}
-					
 					roomlist.push({"name":key.split("/").join(""),count:data[key].length,myroom:myroom});
 				}
 			}
-			
 			viewRoomlist(roomlist);
 		},
 		error: function(res){
-			
 		}
 	});
-	
 }
-
-
-function viewRoomlist(data){
-
+function viewRoomlist(data){	
+	//기존리스트 삭제
+	$("#roomlist li").remove();
+	$("#room").show();
+	//방목록 표기 
+	for(var i = 0 ; i < data.length ; i++){
+		if(data[i].myroom){
+			$("#room").hide();
+			$("#roommake").hide();
+			$("#chatroom").show();
+			$("#chatroom legend").text("방이름 : " + data[i].name + " || 참여자수 : " + data[i].count + " || nickname:" + nickname);
+			
+		}else{
+			$("#roomlist").append("<li '>방이름 :" + data[i].name + ", 참여자수 :" + data[i].count + 
+					", <input type = 'button' value = '입장하기' data-roomname='" + data[i].name + "' > </li>");
+		}
+	}
+	if(data.length < 1){
+		$("#roomlist").append("<li>생성된 방이 없습니다.</li>");
+	}else{
+		//이벤트 핸들러 설정
+		$("#roomlist li input[type=button]").click(function(){
+			isinit = false;
+			$("#newclient").hide();		
+			$("#success").hide();
+			$("#no_id").hide();
+			$("#warn").hide();
+			var data = {"roomname":$(this).data("roomname"),"nickname":$("#enter_id").val(),"pw":$("#enter_pw").val()};
+			socket.emit('roommake', data);
+			nickname = $("#roomlist li input[type=text]").val();
+		});	
+	}
 }
