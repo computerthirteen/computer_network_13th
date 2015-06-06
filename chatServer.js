@@ -1,26 +1,64 @@
-/**
- * Chat Server Source
- */
 io.sockets.on('connection',function(socket){
-	
 	socket.on('making',function(data){
-	  var newid = data.newid;
+		var newid = data.newid;
 		var newpw = data.newpw;
-		//아이디 및 비밀번호 텍스트 파일에 저장하기
+		fs.readFile(newid+'.txt','utf8',function(err,data){
+			if(!err){
+				console.log('already_Exist');
+				io.sockets.emit('R_making_no',null);
+			}
+			else{
+				fs.writeFile(newid+'.txt',newpw,function(err){
+					if(!err){
+						console.log('success');
+						io.sockets.emit('R_making_yes',null);
+					}else{}
+				});
+			}
+		});
 	});
-		
-	
 	socket.on('roommake',function(data){
-	  // 로그인 하기
+		var roomname = data.roomname;
+		var checkid = data.nickname;
+		var checkpw = data.pw;
+		console.log(data.nickname);
+		fs.readFile(data.nickname+'.txt','utf8',function(err,data){
+			if(!err){
+				if(data ==checkpw){
+					socket.join(roomname);
+					socket.set('room',roomname);
+					socket.set('nickname',checkid);		
+					socket.get('nickname',function(err,name){
+						io.sockets.emit('roomlist',{"roomdata":io.sockets.manager.rooms,"clientid":socket.id,"nickname":name});
+						socket.get("room",function(err,room){
+							io.sockets.in(room).emit('intro',name);
+						});
+					});
+					console.log('success2');
+				}else{
+					io.sockets.emit('error',null);
+				}
+				
+			}else{
+				io.sockets.emit('error',null);
+				console.log('fail');
+			}
+		});
 	});
-	
 	socket.on('message',function(data){
-	  // 메세지 수신 및 송신
+		socket.get('nickname',function(err,name){
+			socket.get('room',function(err,room){
+				io.sockets.in(room).emit('message_send',{'msg':data.msg,'from':name});
+			});
+		});
 	});
-	
 	socket.on('disconnect', function () {
-    // 연결 끝날 경우
+		socket.get('nickname',function(err,nickname){
+			socket.get('room',function(err,room){
+				io.sockets.in(room).emit('message_send_disconnect',{'msg':'','from':nickname});
+			});
+		});
+		io.sockets.emit('room_research',null);
 	});
-	
 });
 
