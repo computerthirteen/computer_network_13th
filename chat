@@ -66,6 +66,7 @@ $(document).ready(function(){
 				}
 				roomlist.push({"name":key.split("/").join(""),count:data[key].length,myroom:myroom});
 			}
+				
 		}
 		viewRoomlist(roomlist);
 	});
@@ -95,8 +96,11 @@ $(document).ready(function(){
 	//입장시 화면 처리
 	socket.on('intro',function(data){
 		isinit = true;
-		$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data + ') 님이 입장하셧습니다.\n');
-		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+		if(data != null)
+		{
+			$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data + ') 님이 입장하셧습니다.\n');
+			$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+		}
 	});
 	//msg 처리
 	socket.on('message_send',function(data){
@@ -108,8 +112,10 @@ $(document).ready(function(){
 	//퇴장 화면 처리
 	socket.on('message_send_disconnect',function(data){
 		console.log("DICONNECT");
-		$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data.from + ') 님이 퇴장 하셧습니다.\n');
-		$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+		if(data.from != null){
+			$("#chatroom textarea").val($("#chatroom textarea").val() + '(' + data.from + ') 님이 퇴장 하셧습니다.\n');
+			$('#chatroom textarea').scrollTop($('#chatroom textarea')[0].scrollHeight);
+		}
 	});
 	//입력창에서 엔터시에 데이터 전송 
 	$("#chatroom div input").keypress(function(e){
