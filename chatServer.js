@@ -1,5 +1,5 @@
 io.sockets.on('connection',function(socket){
-	
+	//아이디 만들기
 	socket.on('making',function(data){
 		var newid = data.newid;
 		var newpw = data.newpw;
@@ -22,7 +22,7 @@ io.sockets.on('connection',function(socket){
 		});
 	});
 		
-	
+	//방만들기&로그인
 	socket.on('roommake',function(data){
 		var roomname = data.roomname;
 		var checkid = data.nickname;
@@ -51,7 +51,7 @@ io.sockets.on('connection',function(socket){
 			}
 		});
 	});
-	
+	//메세지 송수신
 	socket.on('message',function(data){
 		socket.get('nickname',function(err,name){
 			socket.get('room',function(err,room){
@@ -59,7 +59,7 @@ io.sockets.on('connection',function(socket){
 			});
 		});
 	});
-	
+	//연결 끊겼을 시
 	socket.on('disconnect', function () {
 		socket.get('nickname',function(err,nickname){
 			socket.get('room',function(err,room){
