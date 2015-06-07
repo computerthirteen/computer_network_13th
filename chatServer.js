@@ -1,4 +1,5 @@
 io.sockets.on('connection',function(socket){
+	
 	socket.on('making',function(data){
 		var newid = data.newid;
 		var newpw = data.newpw;
@@ -12,11 +13,16 @@ io.sockets.on('connection',function(socket){
 					if(!err){
 						console.log('success');
 						io.sockets.emit('R_making_yes',null);
-					}else{}
+					}else{
+						
+					}
 				});
-			}
+				
+				}
 		});
 	});
+		
+	
 	socket.on('roommake',function(data){
 		var roomname = data.roomname;
 		var checkid = data.nickname;
@@ -45,6 +51,7 @@ io.sockets.on('connection',function(socket){
 			}
 		});
 	});
+	
 	socket.on('message',function(data){
 		socket.get('nickname',function(err,name){
 			socket.get('room',function(err,room){
@@ -52,6 +59,7 @@ io.sockets.on('connection',function(socket){
 			});
 		});
 	});
+	
 	socket.on('disconnect', function () {
 		socket.get('nickname',function(err,nickname){
 			socket.get('room',function(err,room){
@@ -59,6 +67,8 @@ io.sockets.on('connection',function(socket){
 			});
 		});
 		io.sockets.emit('room_research',null);
+		
 	});
+	
 });
 
